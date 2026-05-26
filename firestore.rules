@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "carmelolatora310@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Offers
+    match /offers/{offerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      
+      function isValidOffer(data) {
+        return data.keys().hasAll(['provider', 'name', 'price', 'category'])
+          && data.provider is string && data.provider.size() <= 100
+          && data.name is string && data.name.size() <= 200
+          && data.price is number
+          && data.category is string;
+      }
+
+      allow create: if isAdmin() && isValidOffer(request.resource.data);
+      allow update: if isAdmin() && isValidOffer(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['provider', 'providerLogo', 'name', 'price', 'period', 'features', 'category', 'rating']);
+    }
+
+    // Leads
+    match /leads/{leadId} {
+      allow create: if true; // Public can submit leads
+      allow get: if isAdmin() || (isSignedIn() && resource.data.email == request.auth.token.email);
+      allow list: if isAdmin();
+      allow delete: if isAdmin();
+      
+      function isValidLead(data) {
+        return data.keys().hasAll(['email', 'category', 'createdAt'])
+          && data.email is string && data.email.size() <= 256
+          && data.category is string
+          && data.createdAt == request.time;
+      }
+      
+      allow create: if isValidLead(request.resource.data);
+    }
+
+    // Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Admin list
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only manageable via console or functions
+    }
+  }
+}

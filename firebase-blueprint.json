@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Offer": {
+      "title": "Offer",
+      "description": "Insurance, energy, or mortgage offer",
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "providerLogo": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "period": { "type": "string", "enum": ["mese", "anno"] },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "category": { "type": "string" },
+        "rating": { "type": "number" }
+      },
+      "required": ["provider", "name", "price", "category"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Quote request from a user",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "category": { "type": "string" },
+        "formData": { "type": "object" },
+        "status": { "type": "string", "enum": ["new", "contacted", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AppSetting": {
+      "title": "AppSetting",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "contactEmail": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/offers/{offerId}": {
+      "schema": "Offer",
+      "description": "Available offers for comparison"
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "User lead requests"
+    },
+    "/settings/{settingId}": {
+      "schema": "AppSetting",
+      "description": "Configuration settings"
+    }
+  }
+}
