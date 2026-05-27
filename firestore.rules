@@ -40,11 +40,19 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['provider', 'providerLogo', 'name', 'price', 'period', 'features', 'category', 'rating']);
     }
 
+    // Affiliates
+    match /affiliates/{affiliateId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
     // Leads
     match /leads/{leadId} {
       allow create: if true; // Public can submit leads
-      allow get: if isAdmin() || (isSignedIn() && resource.data.email == request.auth.token.email);
-      allow list: if isAdmin();
+      allow get: if isAdmin() || (isSignedIn() && resource.data.email == request.auth.token.email) || (isSignedIn() && resource.data.affiliateId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.affiliateId == request.auth.uid);
       allow delete: if isAdmin();
       
       function isValidLead(data) {

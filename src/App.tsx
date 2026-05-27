@@ -53,6 +53,9 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 
 import { MaintenanceGuard } from './components/MaintenanceGuard';
 
+import { AffiliateRegisterPage } from './pages/affiliate/AffiliateRegisterPage';
+import { AffiliateDashboard } from './pages/affiliate/AffiliateDashboard';
+
 // --- Types ---
 export interface Offer {
   id: string;
@@ -72,21 +75,33 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAffiliate, setIsAffiliate] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isInsuranceFlow = location.pathname.includes('/categoria/');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         // Hardcoded admin for bootstrap
         if (firebaseUser.email === "carmelolatora310@gmail.com") {
           setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
         }
+
+        // Check if user is an affiliate
+        try {
+          const qAffiliate = query(collection(db, 'affiliates'), where('userId', '==', firebaseUser.uid));
+          const snap = await getDocs(qAffiliate);
+          setIsAffiliate(!snap.empty);
+        } catch(e) {}
+        
       } else {
         setUser(null);
         setIsAdmin(false);
+        setIsAffiliate(false);
       }
     });
 
@@ -161,6 +176,9 @@ const Header = () => {
             {isAdmin && (
               <Link to="/admin" className="text-sm font-bold text-orange-600 hover:text-orange-700">Admin Panel</Link>
             )}
+            {isAffiliate && (
+              <Link to="/affiliato/dashboard" className="text-sm font-bold text-blue-600 hover:text-blue-700">Area Partner</Link>
+            )}
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium text-gray-700">Ciao, <span className="text-[#00B14F]">{user.displayName?.split(' ')[0] || user.email}</span></span>
@@ -199,6 +217,12 @@ const Header = () => {
               <Link to="/categoria/energia" className="block text-lg font-medium text-gray-700" onClick={() => setIsMenuOpen(false)}>Energia</Link>
               <Link to="/categoria/mutui" className="block text-lg font-medium text-gray-700" onClick={() => setIsMenuOpen(false)}>Mutui e Prestiti</Link>
               <Link to="/categoria/internet" className="block text-lg font-medium text-gray-700" onClick={() => setIsMenuOpen(false)}>Internet</Link>
+              {isAffiliate && (
+                <Link to="/affiliato/dashboard" className="block text-lg font-bold text-blue-600" onClick={() => setIsMenuOpen(false)}>Area Partner</Link>
+              )}
+              {isAdmin && (
+                <Link to="/admin" className="block text-lg font-bold text-orange-600" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>
+              )}
               <hr />
               {user ? (
                 <div className="space-y-4">
@@ -1045,11 +1069,16 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div className="text-center pt-4">
+        <div className="text-center pt-4 space-y-3">
           <p className="text-gray-600">
             Non hai ancora un account?{' '}
             <Link to="/register" className="text-[#00B14F] font-bold hover:underline">Registrati</Link>
           </p>
+          <div className="pt-2 border-t border-gray-100">
+            <Link to="/affiliato/registrazione" className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+              Sei una Tabaccheria? Diventa Partner
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -1152,11 +1181,16 @@ const RegisterPage = () => {
           </button>
         </form>
 
-        <div className="text-center pt-4">
+        <div className="text-center pt-4 space-y-3">
           <p className="text-gray-600">
             Hai già un account?{' '}
             <Link to="/login" className="text-[#00B14F] font-bold hover:underline">Accedi</Link>
           </p>
+          <div className="pt-2 border-t border-gray-100">
+            <Link to="/affiliato/registrazione" className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+              Sei una Tabaccheria? Diventa Partner
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -1203,6 +1237,7 @@ const Footer = () => (
           <ul className="space-y-4 text-sm">
             <li><Link to="/chi-siamo" className="hover:text-[#00B14F] transition-colors">Chi siamo</Link></li>
             <li><Link to="/lavora-con-noi" className="hover:text-[#00B14F] transition-colors">Lavora con noi</Link></li>
+            <li><Link to="/affiliato/registrazione" className="hover:text-[#00B14F] transition-colors font-bold text-white">Diventa Partner (Tabaccai)</Link></li>
             <li><Link to="/privacy" className="hover:text-[#00B14F] transition-colors">Privacy Policy</Link></li>
             <li><Link to="/contatti" className="hover:text-[#00B14F] transition-colors">Contatti</Link></li>
             <li><Link to="/admin" className="text-[#00B14F] font-bold hover:underline">Area Admin</Link></li>
@@ -1240,6 +1275,8 @@ export default function App() {
         <Route path="/categoria/:category" element={<MaintenanceGuard><Layout><CategoryPage /></Layout></MaintenanceGuard>} />
         <Route path="/login" element={<Layout><LoginPage /></Layout>} />
         <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
+        <Route path="/affiliato/registrazione" element={<Layout><AffiliateRegisterPage /></Layout>} />
+        <Route path="/affiliato/dashboard" element={<AffiliateDashboard />} />
         <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
         {/* Fallback for other routes */}
         <Route path="*" element={<MaintenanceGuard><Layout><HomePage /></Layout></MaintenanceGuard>} />

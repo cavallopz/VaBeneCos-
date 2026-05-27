@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, orderBy, onSnapshot, deleteDoc, doc, limit, startAfter, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, onSnapshot, deleteDoc, doc, limit, startAfter, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { db, auth } from '../../lib/firebase';
-import { Car, Zap, Trash2, Mail, Eye, X, LayoutDashboard, Tags, Users, LogOut, ShieldCheck, Plus, ChevronRight } from 'lucide-react';
+import { Car, Zap, Trash2, Mail, Eye, X, LayoutDashboard, Tags, Users, LogOut, ShieldCheck, Plus, ChevronRight, Store, MapPin, Phone } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,7 +21,8 @@ export interface Offer {
 export const AdminDashboard = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'offers' | 'leads'>('offers');
+  const [affiliates, setAffiliates] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'offers' | 'leads' | 'affiliates'>('offers');
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lastOffer, setLastOffer] = useState<any>(null);
@@ -55,9 +56,16 @@ export const AdminDashboard = () => {
       setLastLead(snapshot.docs[snapshot.docs.length - 1]);
     });
 
+    // Initial fetch for affiliates
+    const qAffiliates = query(collection(db, 'affiliates'), orderBy('createdAt', 'desc'), limit(50));
+    const unsubscribeAffiliates = onSnapshot(qAffiliates, (snapshot) => {
+      setAffiliates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubscribeOffers();
       unsubscribeLeads();
+      unsubscribeAffiliates();
     };
   }, []);
 
@@ -77,6 +85,19 @@ export const AdminDashboard = () => {
     const newOffers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Offer));
     setOffers([...offers, ...newOffers]);
     setLastOffer(snapshot.docs[snapshot.docs.length - 1]);
+  };
+
+  const handleApproveAffiliate = async (affiliateId: string) => {
+    if (window.confirm("Sei sicuro di voler approvare questo affiliato?")) {
+      try {
+        await updateDoc(doc(db, 'affiliates', affiliateId), {
+          status: 'active'
+        });
+      } catch(e) {
+         console.error(e);
+         alert("Errore");
+      }
+    }
   };
 
   const handleAddOffer = async (e: React.FormEvent) => {
@@ -145,6 +166,15 @@ export const AdminDashboard = () => {
                 {leads.length > 0 && <span className={cn("ml-auto text-xs py-0.5 px-2 rounded-full font-bold", activeTab === 'leads' ? "bg-blue-500 text-white" : "bg-gray-800 text-gray-300")}>{leads.length}</span>}
               </button>
             </li>
+            <li>
+              <button 
+                onClick={() => setActiveTab('affiliates')}
+                className={cn("w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", activeTab === 'affiliates' ? "bg-blue-600 text-white" : "hover:bg-gray-800 hover:text-white")}
+              >
+                <Store className={cn("w-5 h-5 mr-3", activeTab === 'affiliates' ? "text-blue-200" : "text-gray-400")} />
+                <span className="flex-1 text-left">Affiliati (Tabaccai)</span>
+              </button>
+            </li>
           </ul>
 
           <div className="mt-8 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Piattaforma</div>
@@ -182,7 +212,7 @@ export const AdminDashboard = () => {
         {/* Topbar */}
         <header className="h-16 border-b border-gray-200 flex items-center justify-between px-8 shadow-sm shrink-0 z-10 bg-white">
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center">
-            {activeTab === 'offers' ? 'Offerte' : 'Leads'}
+            {activeTab === 'offers' ? 'Offerte' : activeTab === 'leads' ? 'Leads' : 'Rete Affiliati'}
             <ChevronRight className="w-5 h-5 mx-2 text-gray-400" />
             <span className="text-gray-500 font-normal text-lg">Panoramica</span>
           </h2>
@@ -356,7 +386,7 @@ export const AdminDashboard = () => {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'leads' ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-2">
                    <h3 className="text-xl font-bold text-gray-900">Leads Ricevuti ({leads.length})</h3>
@@ -425,6 +455,72 @@ export const AdminDashboard = () => {
                     >
                       Carica Altri Lead
                     </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                   <h3 className="text-xl font-bold text-gray-900">Affiliati Registrati ({affiliates.length})</h3>
+                </div>
+                
+                {affiliates.length === 0 ? (
+                  <div className="text-center py-20 bg-white border border-gray-200 rounded-3xl shadow-sm">
+                    <Store className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Nessun Affiliato</h3>
+                    <p className="text-gray-500">Non ci sono ancora tabaccai o affiliati registrati.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {affiliates.map(affiliate => (
+                      <div key={affiliate.id} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col space-y-4 hover:border-blue-300 transition-all hover:shadow-md">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                                <Store className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-lg">{affiliate.businessName || 'Nome Attività N/D'}</h4>
+                                <p className="text-sm text-gray-500">{affiliate.ownerName || 'Referente N/D'}</p>
+                            </div>
+                          </div>
+                          <span className={cn(
+                            "text-xs font-bold px-2 py-1 rounded-full uppercase tracking-tighter border",
+                            affiliate.status === 'active' ? "bg-green-50 text-green-700 border-green-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          )}>
+                            {affiliate.status === 'active' ? 'Attivo' : 'In Attesa'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2 text-sm text-gray-600 border-t border-gray-100 pt-4">
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                            <span>{affiliate.address || 'Indirizzo N/D'}, {affiliate.city || 'Città N/D'} ({affiliate.province || 'PR'})</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                            <span>{affiliate.email || 'Email N/D'}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                            <span>{affiliate.phone || 'Telefono N/D'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-2 pt-2">
+                           <button className="flex-1 bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded-xl hover:bg-blue-50 transition-all font-semibold text-sm">
+                             Dettagli
+                           </button>
+                           {affiliate.status !== 'active' && (
+                             <button 
+                               onClick={() => handleApproveAffiliate(affiliate.id)}
+                               className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all font-semibold text-sm">
+                               Approva
+                             </button>
+                           )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
