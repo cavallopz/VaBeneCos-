@@ -45,6 +45,8 @@ import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signI
 
 import { AdminGuard } from './components/AdminGuard';
 
+import { MaintenanceGuard } from './components/MaintenanceGuard';
+
 // --- Types ---
 export interface Offer {
   id: string;
@@ -1560,24 +1562,28 @@ const Footer = () => (
   </footer>
 );
 
+const Layout = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-col min-h-screen font-sans">
+    <Header />
+    <main className="flex-grow">
+      {children}
+    </main>
+    <Footer />
+  </div>
+);
+
 export default function App() {
   return (
     <Router>
-      <div className="flex flex-col min-h-screen font-sans">
-        <Header />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/categoria/:category" element={<CategoryPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
-            {/* Fallback for other routes */}
-            <Route path="*" element={<HomePage />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <Routes>
+        <Route path="/" element={<MaintenanceGuard><Layout><HomePage /></Layout></MaintenanceGuard>} />
+        <Route path="/categoria/:category" element={<MaintenanceGuard><Layout><CategoryPage /></Layout></MaintenanceGuard>} />
+        <Route path="/login" element={<Layout><LoginPage /></Layout>} />
+        <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
+        <Route path="/admin" element={<AdminGuard><Layout><AdminDashboard /></Layout></AdminGuard>} />
+        {/* Fallback for other routes */}
+        <Route path="*" element={<MaintenanceGuard><Layout><HomePage /></Layout></MaintenanceGuard>} />
+      </Routes>
     </Router>
   );
 }
