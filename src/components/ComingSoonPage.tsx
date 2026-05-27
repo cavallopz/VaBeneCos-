@@ -1,5 +1,6 @@
 import React from 'react';
 import { Smile } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const ComingSoonPage = () => {
   return (
@@ -14,13 +15,13 @@ export const ComingSoonPage = () => {
         Il nuovo portale VaBeneCosi sarà presto online. Stiamo lavorando dietro le quinte per offrirti la migliore esperienza di risparmio su assicurazioni, luce, gas e molto altro.
       </p>
       
-      <div className="mt-12 flex items-center space-x-2 text-sm font-bold text-[#00B14F] bg-green-50 px-4 py-2 rounded-full">
+      <Link to="/login" className="mt-12 flex items-center space-x-2 text-sm font-bold text-[#00B14F] bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition-colors cursor-pointer">
         <span className="relative flex h-3 w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00B14F]"></span>
         </span>
         <span>Lavori in corso</span>
-      </div>
+      </Link>
     </div>
   );
 };
